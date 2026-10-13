@@ -166,14 +166,15 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
         <span class="status" id="status"></span>
       </div>
       <div class="btnrow">
-        <button class="btn primary" id="ghPushBtn" type="button">GitHub'ga saqlash (jonli)</button>
+        <button class="btn primary" id="ghWebBtn" type="button">Nashr qilish</button>
+        <button class="btn" id="ghPushBtn" type="button">To'liq avtomatik (token bilan)</button>
         <button class="btn" id="downloadBtn" type="button">data.json yuklab olish</button>
         <button class="btn" id="copyBtn" type="button">Nusxa olish</button>
         <label class="btn file">Import (data.json)<input type="file" id="importFile" accept="application/json,.json" hidden></label>
         <button class="btn" id="reloadBtn" type="button">Serverni yuklash</button>
         <button class="btn danger" id="resetBtn" type="button">Tiklash</button>
       </div>
-      <p class="hint"><b>Eng oson:</b> «GitHub'ga saqlash» → sayt ~1 daqiqada avtomatik yangilanadi. Yoki «data.json yuklab olish» → repoga qo'lda yuklang.</p>
+      <p class="hint"><b>Nashr qilish:</b> tugmani bosing → GitHub sahifasi ochiladi → o'sha yerda <b>«Commit changes»</b> ni bosing. ~1 daqiqadan keyin sayt yangilanadi. (Token shart emas; GitHub'ga kirgan bo'lishingiz kerak.)</p>
     </section>
 
     <section class="card" id="ghCard">
@@ -506,6 +507,23 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
   }
   function wirePublish(){
     $("downloadBtn").addEventListener("click", download);
+    $("ghWebBtn").addEventListener("click", function(){
+      var txt = JSON.stringify(state, null, 2);
+      var g = ghLoad();
+      var owner = g.owner || "murodbeknaymetov444-ops";
+      var repo = g.repo || "links";
+      var branch = g.branch || "main";
+      var url = "https://github.com/" + owner + "/" + repo + "/edit/" + encodeURIComponent(branch) + "/data.json";
+      window.open(url, "_blank", "noopener");
+      function after(){
+        alert("GitHub sahifasi ochildi. U yerda:\n\n1) Kod maydoniga bosing\n2) Ctrl+A (hammasini belgilash)\n3) Ctrl+V (nusxa allaqachon olindi)\n4) «Commit changes» tugmasini bosing\n\nSo'ng ~1 daqiqadan keyin saytni Ctrl+F5 bilan yangilang.");
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(function(){ after(); }, function(){ window.prompt("Quyidagini nusxalang (Ctrl+C), so'ng GitHub sahifasiga Ctrl+V qiling:", txt); after(); });
+      }else{
+        window.prompt("Quyidagini nusxalang (Ctrl+C), so'ng GitHub sahifasiga Ctrl+V qiling:", txt); after();
+      }
+    });
     $("copyBtn").addEventListener("click", function(){
       var txt = JSON.stringify(state, null, 2);
       if(navigator.clipboard && navigator.clipboard.writeText){
