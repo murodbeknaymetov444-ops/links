@@ -345,9 +345,14 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
   function loadDraft(){
     try{ var raw = localStorage.getItem(DRAFT); return raw ? JSON.parse(raw) : null; }catch(e){ return null; }
   }
+  var saveTimer = null;
   function saveDraft(){
     try{ localStorage.setItem(DRAFT, JSON.stringify(state)); }catch(e){}
     if(source !== "draft"){ source = "draft"; setStatus(); }
+  }
+  function saveDraftSoon(){
+    if(saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDraft, 500);
   }
   function boot(){
     var draft = loadDraft();
@@ -434,8 +439,8 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
   }
 
   function wireProfile(){
-    $("fName").addEventListener("input", function(e){ state.name = e.target.value; renderAvatarPrev(); saveDraft(); });
-    $("fHandle").addEventListener("input", function(e){ state.handle = e.target.value; saveDraft(); });
+    $("fName").addEventListener("input", function(e){ state.name = e.target.value; if(!state.avatar) renderAvatarPrev(); saveDraftSoon(); });
+    $("fHandle").addEventListener("input", function(e){ state.handle = e.target.value; saveDraftSoon(); });
     $("avaFile").addEventListener("change", function(e){
       var f = e.target.files && e.target.files[0]; e.target.value = "";
       if(!f) return;
@@ -448,7 +453,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
     box.addEventListener("input", function(e){
       var row = e.target.closest(".lrow"); if(!row) return;
       var i = +row.getAttribute("data-i"), k = e.target.getAttribute("data-k");
-      if(k && k!=="main"){ state.links[i][k] = e.target.value; updateRowHeader(i); saveDraft(); }
+      if(k && k!=="main"){ state.links[i][k] = e.target.value; updateRowHeader(i); saveDraftSoon(); }
     });
     box.addEventListener("change", function(e){
       var row = e.target.closest(".lrow"); if(!row) return;
@@ -581,6 +586,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
   }
 
   wireProfile(); wireEditor(); wirePublish(); wirePassword(); wireGitHub();
+  window.addEventListener("beforeunload", function(){ if(saveTimer){ clearTimeout(saveTimer); saveDraft(); } });
 })();
 </script>
 </body>
