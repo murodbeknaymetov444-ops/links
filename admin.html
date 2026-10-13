@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; connect-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; connect-src 'self' https://api.github.com; base-uri 'self'; form-action 'none'; object-src 'none'">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <title>Panel — NAYMETOV</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -159,13 +159,24 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
         <span class="status" id="status"></span>
       </div>
       <div class="btnrow">
-        <button class="btn primary" id="downloadBtn" type="button">data.json yuklab olish</button>
+        <button class="btn primary" id="ghPushBtn" type="button">GitHub'ga saqlash (jonli)</button>
+        <button class="btn" id="downloadBtn" type="button">data.json yuklab olish</button>
         <button class="btn" id="copyBtn" type="button">Nusxa olish</button>
         <label class="btn file">Import (data.json)<input type="file" id="importFile" accept="application/json,.json" hidden></label>
         <button class="btn" id="reloadBtn" type="button">Serverni yuklash</button>
         <button class="btn danger" id="resetBtn" type="button">Tiklash</button>
       </div>
-      <p class="hint"><b>GitHub Pages uchun:</b> «data.json yuklab olish» → faylni repoga yuklang (eski <b>data.json</b> ustiga) → commit. Sayt bir necha soniyada yangilanadi.</p>
+      <p class="hint"><b>Eng oson:</b> «GitHub'ga saqlash» → sayt ~1 daqiqada avtomatik yangilanadi. Yoki «data.json yuklab olish» → repoga qo'lda yuklang.</p>
+    </section>
+
+    <section class="card">
+      <h3>GitHub'ga ulash (avtomatik nashr)</h3>
+      <div class="field"><label for="ghOwner">Owner (foydalanuvchi nomi)</label><input id="ghOwner" type="text" placeholder="username" autocomplete="off"></div>
+      <div class="field"><label for="ghRepo">Repo nomi</label><input id="ghRepo" type="text" placeholder="links" autocomplete="off"></div>
+      <div class="field"><label for="ghBranch">Branch</label><input id="ghBranch" type="text" placeholder="main" autocomplete="off"></div>
+      <div class="field"><label for="ghToken">Personal Access Token</label><input id="ghToken" type="password" placeholder="github_pat_..." autocomplete="off"></div>
+      <button class="btn" id="ghSave" type="button">Ulanishni saqlash</button>
+      <p class="hint">Token faqat shu brauzerda saqlanadi, repoga tushmaydi. GitHub → Settings → Developer settings → <b>Fine-grained tokens</b> → shu repo uchun <b>Contents: Read and write</b> ruxsati bilan yarating.</p>
     </section>
 
     <section class="card">
@@ -527,7 +538,49 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
     });
   }
 
-  wireProfile(); wireEditor(); wirePublish(); wirePassword();
+  /* ---------- GitHub'ga avtomatik nashr ---------- */
+  var GHKEY = "nal.gh.v1";
+  function ghLoad(){ try{ return JSON.parse(localStorage.getItem(GHKEY)) || {}; }catch(e){ return {}; } }
+  function ghFill(){
+    var g = ghLoad();
+    $("ghOwner").value = g.owner || "";
+    $("ghRepo").value = g.repo || "";
+    $("ghBranch").value = g.branch || "main";
+    $("ghToken").value = g.token || "";
+  }
+  function b64utf8(str){ return btoa(unescape(encodeURIComponent(str))); }
+  function ghPush(){
+    var g = ghLoad();
+    if(!g.owner || !g.repo || !g.token){ alert("Avval «GitHub'ga ulash» bo'limini to'ldirib, «Ulanishni saqlash» tugmasini bosing."); return; }
+    var api = "https://api.github.com/repos/" + g.owner + "/" + g.repo + "/contents/data.json";
+    var headers = {"Authorization":"Bearer " + g.token, "Accept":"application/vnd.github+json", "X-GitHub-Api-Version":"2022-11-28"};
+    var btn = $("ghPushBtn"), old = btn.textContent;
+    btn.disabled = true; btn.textContent = "Saqlanmoqda...";
+    fetch(api + "?ref=" + encodeURIComponent(g.branch), {headers:headers, cache:"no-store"})
+      .then(function(r){ return r.status === 200 ? r.json() : null; })
+      .then(function(cur){
+        var body = { message:"Panel: sayt yangilandi", content:b64utf8(JSON.stringify(state, null, 2)), branch:g.branch };
+        if(cur && cur.sha) body.sha = cur.sha;
+        var h2 = {}; for(var k in headers) h2[k] = headers[k]; h2["Content-Type"] = "application/json";
+        return fetch(api, {method:"PUT", headers:h2, body:JSON.stringify(body)});
+      })
+      .then(function(r){
+        if(r.ok){ btn.disabled = false; btn.textContent = "Saqlandi"; setTimeout(function(){ btn.textContent = old; }, 2200); alert("Saqlandi! Sayt ~1 daqiqada yangilanadi."); return; }
+        return r.text().then(function(t){ btn.disabled = false; btn.textContent = old; alert("Xato (" + r.status + "): " + t); });
+      })
+      .catch(function(err){ btn.disabled = false; btn.textContent = old; alert("Xato: " + err.message); });
+  }
+  function wireGitHub(){
+    ghFill();
+    $("ghSave").addEventListener("click", function(){
+      var g = { owner:$("ghOwner").value.trim(), repo:$("ghRepo").value.trim(), branch:($("ghBranch").value.trim() || "main"), token:$("ghToken").value.trim() };
+      try{ localStorage.setItem(GHKEY, JSON.stringify(g)); }catch(e){}
+      flash($("ghSave"), "Saqlandi");
+    });
+    $("ghPushBtn").addEventListener("click", ghPush);
+  }
+
+  wireProfile(); wireEditor(); wirePublish(); wirePassword(); wireGitHub();
 })();
 </script>
 </body>
