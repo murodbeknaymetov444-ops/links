@@ -14,12 +14,27 @@
 4. 1–2 daqiqadan keyin havola chiqadi:
    `https://<username>.github.io/links/`
 
-## 2) Saytni yangilash
-1. `https://<username>.github.io/links/admin.html` ni oching.
-2. Parolni kiriting (standart: **Naymetov2026** — darhol o'zgartiring!).
-3. Tahrirlang → **data.json yuklab olish**.
-4. Yuklab olingan `data.json` ni repodagi eskisi ustiga yuklang (commit).
-5. Sayt avtomatik yangilanadi.
+## 2) Saytni yangilash (nashr qilish)
+
+> Muhim: panel saytni **o'zi avtomatik o'zgartirmaydi**. Tahrirni saqlagach, uni **nashr** qilish kerak.
+
+### A) Avtomatik nashr (bir marta sozlanadi) — asosiy usul
+1. GitHub'da **fine-grained token** yarating:
+   https://github.com/settings/personal-access-tokens/new
+   - **Name:** `panel` | **Expiration:** 90 days
+   - **Repository access** → *Only select repositories* → **links**
+   - **Permissions → Repository permissions → Contents → Read and write**
+   - **Generate token** → tokenni nusxalang (`github_pat_...`)
+2. `admin.html` ni oching → parolni kiriting.
+3. Pastdagi **«GitHub'ga ulash»** → tokenni joylashtiring → **Ulanishni saqlash**.
+   (Owner/Repo/Branch oldindan to'ldirilgan: `murodbeknaymetov444-ops` / `links` / `main`)
+   → tepadagi yozuv **yashil** bo'ladi: "GitHub ulangan ✓".
+4. Endi har safar: tahrirlang → **«GitHub'ga saqlash (jonli)»** → ~1 daqiqa kuting → saytni **Ctrl+F5** qiling.
+
+### B) Qo'lda nashr (token yo'q bo'lsa)
+1. Tahrirlang → **data.json yuklab olish**.
+2. Yuklab olingan `data.json` ni repodagi eskisi ustiga yuklang (commit).
+3. Sayt avtomatik yangilanadi.
 
 ## 3) Parolni o'zgartirish
 Panel → «Parolni o'zgartirish» → yangi parol → **Hash yaratish** → chiqqan hash'ni
