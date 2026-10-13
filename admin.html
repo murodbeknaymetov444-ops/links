@@ -67,6 +67,11 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
 .hint b{color:#cfd0dc;font-weight:600}
 .status{font-size:12.5px;color:var(--muted);margin-left:auto}
 .badge{display:inline-block;padding:2px 9px;border-radius:99px;border:1px solid var(--line);font-size:12px;color:#b5b6c4}
+.banner{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:16px;
+  font-size:13.5px;line-height:1.4;cursor:pointer;background:rgba(255,255,255,.03);transition:border-color .25s}
+.banner.ok{border-color:rgba(120,220,150,.4);color:#b8f0c8}
+.banner.warn{border-color:rgba(255,200,120,.4);color:#f0d9b8}
+.banner:hover{border-color:rgba(255,255,255,.35)}
 
 .avatar-field{display:flex;align-items:center;gap:14px}
 .ava-prev{flex:none;width:66px;height:66px;border-radius:50%;padding:2px;background:conic-gradient(from var(--a),var(--c1),var(--c2),var(--c3),var(--c1));animation:spin 6s linear infinite}
@@ -132,6 +137,8 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
       <button class="btn small" id="lockBtn" type="button">Chiqish</button>
     </div>
 
+    <div class="banner warn" id="ghBanner"></div>
+
     <section class="card">
       <h3>Profil</h3>
       <div class="field avatar-field">
@@ -169,7 +176,7 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
       <p class="hint"><b>Eng oson:</b> «GitHub'ga saqlash» → sayt ~1 daqiqada avtomatik yangilanadi. Yoki «data.json yuklab olish» → repoga qo'lda yuklang.</p>
     </section>
 
-    <section class="card">
+    <section class="card" id="ghCard">
       <h3>GitHub'ga ulash (avtomatik nashr)</h3>
       <div class="field"><label for="ghOwner">Owner (foydalanuvchi nomi)</label><input id="ghOwner" type="text" placeholder="username" autocomplete="off"></div>
       <div class="field"><label for="ghRepo">Repo nomi</label><input id="ghRepo" type="text" placeholder="links" autocomplete="off"></div>
@@ -548,10 +555,21 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
   function ghLoad(){ try{ return JSON.parse(localStorage.getItem(GHKEY)) || {}; }catch(e){ return {}; } }
   function ghFill(){
     var g = ghLoad();
-    $("ghOwner").value = g.owner || "";
-    $("ghRepo").value = g.repo || "";
+    $("ghOwner").value = g.owner || "murodbeknaymetov444-ops";
+    $("ghRepo").value = g.repo || "links";
     $("ghBranch").value = g.branch || "main";
     $("ghToken").value = g.token || "";
+  }
+  function ghConfigured(){ var g = ghLoad(); return !!(g.owner && g.repo && g.token); }
+  function updateBanner(){
+    var b = $("ghBanner");
+    if(ghConfigured()){
+      b.className = "banner ok";
+      b.textContent = "GitHub ulangan — «GitHub'ga saqlash (jonli)» bilan nashr qiling.";
+    }else{
+      b.className = "banner warn";
+      b.textContent = "GitHub hali ulanmagan — token kiriting (bu yerga bosing).";
+    }
   }
   function b64utf8(str){ return btoa(unescape(encodeURIComponent(str))); }
   function ghPush(){
@@ -576,11 +594,12 @@ select{appearance:none;-webkit-appearance:none;cursor:pointer;
       .catch(function(err){ btn.disabled = false; btn.textContent = old; alert("Xato: " + err.message); });
   }
   function wireGitHub(){
-    ghFill();
+    ghFill(); updateBanner();
+    $("ghBanner").addEventListener("click", function(){ var c = $("ghCard"); if(c) c.scrollIntoView({behavior:"smooth", block:"start"}); });
     $("ghSave").addEventListener("click", function(){
       var g = { owner:$("ghOwner").value.trim(), repo:$("ghRepo").value.trim(), branch:($("ghBranch").value.trim() || "main"), token:$("ghToken").value.trim() };
       try{ localStorage.setItem(GHKEY, JSON.stringify(g)); }catch(e){}
-      flash($("ghSave"), "Saqlandi");
+      updateBanner(); flash($("ghSave"), "Saqlandi");
     });
     $("ghPushBtn").addEventListener("click", ghPush);
   }
